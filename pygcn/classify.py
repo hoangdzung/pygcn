@@ -72,8 +72,12 @@ class Classifier(object):
         numpy.random.set_state(state)
         return self.evaluate(X_test, Y_test)
 
-def classify(vectors, Y, train_percent):
+def classify(embedding, Y, train_percent):
+    vectors = {}
+    for i in range(embedding.shape[0]):
+        vectors[str(i)] = embedding[i]
+
     print("Training classifier using {:.2f}% nodes...".format(train_percent * 100))
     clf = Classifier(vectors=vectors, clf=LogisticRegression(solver="lbfgs", max_iter=4000))
-    scores = clf.split_train_evaluate(list(range(Y.shape[0])), Y, train_percent)
+    scores = clf.split_train_evaluate([str(i) for i in range(embedding.shape[0])], [[str(i)] for i in Y], train_percent)
     return scores

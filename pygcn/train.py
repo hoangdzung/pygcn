@@ -98,9 +98,9 @@ def pretrain(epoch, temp):
     #       'acc_val: {:.4f}'.format(acc_val.item()),
     #       'time: {:.4f}s'.format(time.time() - t))
     if epoch % 100 = 0:
-        accs = classify(labels.detach().cpu().numpy(), model.params.detach().cpu().numpy())
+        accs = classify(model.params.detach().cpu().numpy(),labels.detach().cpu().numpy(), 0.5)
         print(accs)
-        
+
 def train(epoch):
     t = time.time()
     model.train()
