@@ -51,7 +51,7 @@ if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
 # Load data
-adj, features, labels, idx_train, idx_val, idx_test = load_data()
+adj, adj_ds, features, labels, idx_train, idx_val, idx_test = load_data()
 
 # Model and optimizer
 model = GCN(nfeat=features.shape[1],
@@ -65,6 +65,7 @@ if args.cuda:
     model.cuda()
     features = features.cuda()
     adj = adj.cuda()
+    adj_ds = adj_ds.cuda()
     labels = labels.cuda()
     idx_train = idx_train.cuda()
     idx_val = idx_val.cuda()
@@ -76,7 +77,7 @@ def pretrain(epoch, temp):
     model.train()
     optimizer.zero_grad()
     assign_tensor, output = model(features, adj, temp, args.hard, args.beta)
-    loss_train = nmin_cut(assign_tensor, adj)
+    loss_train = nmin_cut(assign_tensor, adj_ds)
     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
