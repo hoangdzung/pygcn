@@ -11,6 +11,7 @@ import torch.optim as optim
 
 from pygcn.utils import load_data, accuracy
 from pygcn.models import GCN
+from pygcn.loss import nmin_cut
 
 # Training settings
 parser = argparse.ArgumentParser()
@@ -19,6 +20,8 @@ parser.add_argument('--no-cuda', action='store_true', default=False,
 parser.add_argument('--fastmode', action='store_true', default=False,
                     help='Validate during training pass.')
 parser.add_argument('--seed', type=int, default=42, help='Random seed.')
+parser.add_argument('--pre_epochs', type=int, default=200,
+                    help='Number of epochs to pre-train.')
 parser.add_argument('--epochs', type=int, default=200,
                     help='Number of epochs to train.')
 parser.add_argument('--lr', type=float, default=0.01,
@@ -29,6 +32,15 @@ parser.add_argument('--hidden', type=int, default=16,
                     help='Number of hidden units.')
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
+
+parser.add_argument('--min-temp', dest='min_temp', type=float, default=0.1,
+        help='Minimum value of temperature when using temp annealing, default=0.1')
+parser.add_argument('--temp', dest='temp', type=float, default=1,
+        help='Temperature for gumbel sinkhorn, default=1')
+parser.add_argument('--hard',action="store_true",
+        help='Hard assignment of gumbel softmax') 
+parser.add_argument('--beta', type=float, default=0,
+        help='Beta param of gumbel softmax, default=0')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -59,11 +71,36 @@ if args.cuda:
     idx_test = idx_test.cuda()
 
 
+def pretrain(epoch, temp):
+    t = time.time()
+    model.train()
+    optimizer.zero_grad()
+    assign_tensor, output = model(features, adj, temp, args.hard, args.beta)
+    loss_train = nmin_cut(assign_tensor, adj)
+    acc_train = accuracy(output[idx_train], labels[idx_train])
+    loss_train.backward()
+    optimizer.step()
+
+    if not args.fastmode:
+        # Evaluate validation set performance separately,
+        # deactivates dropout during validation run.
+        model.eval()
+        _, output = model(features, adj)
+
+    # loss_val = F.nll_loss(output[idx_val], labels[idx_val])
+    acc_val = accuracy(output[idx_val], labels[idx_val])
+    print('Epoch: {:04d}'.format(epoch+1),
+          'loss_train: {:.4f}'.format(loss_train.item()),
+          'acc_train: {:.4f}'.format(acc_train.item()),
+        #   'loss_val: {:.4f}'.format(loss_val.item()),
+          'acc_val: {:.4f}'.format(acc_val.item()),
+          'time: {:.4f}s'.format(time.time() - t))
+
 def train(epoch):
     t = time.time()
     model.train()
     optimizer.zero_grad()
-    output = model(features, adj)
+    _, output = model(features, adj)
     loss_train = F.nll_loss(output[idx_train], labels[idx_train])
     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
@@ -73,7 +110,7 @@ def train(epoch):
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
         model.eval()
-        output = model(features, adj)
+        _. output = model(features, adj)
 
     loss_val = F.nll_loss(output[idx_val], labels[idx_val])
     acc_val = accuracy(output[idx_val], labels[idx_val])
@@ -87,7 +124,7 @@ def train(epoch):
 
 def test():
     model.eval()
-    output = model(features, adj)
+    _, output = model(features, adj)
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
     print("Test set results:",
@@ -97,6 +134,9 @@ def test():
 
 # Train model
 t_total = time.time()
+temp = args.temp
+for epoch in range(args.pre_epochs):
+    pretrain(epoch, temp)
 for epoch in range(args.epochs):
     train(epoch)
 print("Optimization Finished!")
