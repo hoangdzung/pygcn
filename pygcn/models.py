@@ -13,6 +13,7 @@ class GCN(nn.Module):
 
     def forward(self, x, adj, temp=1, hard=False, beta=0):
         x = self.gc1(x, adj)
+        self.params = x 
         embedding_assign = gumbel_softmax(x, temp, hard, beta)
         x = F.relu(x)
         x = F.dropout(x, self.dropout, training=self.training)
