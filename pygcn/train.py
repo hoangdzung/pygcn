@@ -64,6 +64,7 @@ optimizer = optim.Adam(model.parameters(),
 
 best_val_acc = 0
 best_output = None 
+best_at = 0
 
 if args.cuda:
     model.cuda()
@@ -105,7 +106,7 @@ def pretrain(epoch, temp):
         print(loss_train.item(), accs)
 
 def train(epoch):
-    global best_val_acc, best_output
+    global best_val_acc, best_output, best_at
 
     t = time.time()
     model.train()
@@ -127,6 +128,7 @@ def train(epoch):
     if acc_val > best_val_acc:
         best_val_acc = acc_val
         best_output = output
+        best_at = epoch
 
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(loss_train.item()),
@@ -157,4 +159,5 @@ print("Optimization Finished!")
 print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
 # Testing
+print("Best model at ", best_at)
 test(best_output)
