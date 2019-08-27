@@ -36,6 +36,8 @@ parser.add_argument('--dropout', type=float, default=0.5,
 
 parser.add_argument('--anneal', action='store_true', default=False,
                     help='Disables CUDA training.')
+parser.add_argument('--transfer', action='store_true', default=False,
+                    help='Transfer learning - using smaller learning rate when transfering')
 parser.add_argument('--min-temp', dest='min_temp', type=float, default=0.1,
                     help='Minimum value of temperature when using temp annealing, default=0.1')
 parser.add_argument('--temp', dest='temp', type=float, default=1,
@@ -63,6 +65,14 @@ model = GCN(nfeat=features.shape[1],
             dropout=args.dropout)
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
+optimizer2 = optim.Adam(
+    [
+        {"params": model.encoder.parameters(), "lr": args.lr/10},
+        {"params": model.classifier.parameters(), "lr": args.lr}
+    ], 
+    lr=args.lr, 
+    weight_decay=args.weight_decay
+)
 
 best_val_acc = 0
 best_output = None 
@@ -112,12 +122,19 @@ def train(epoch):
 
     t = time.time()
     model.train()
-    optimizer.zero_grad()
+    if args.transfer:
+        optimizer2.zero_grad()
+    else:
+        optimizer.zero_grad()
+
     _, output = model(features, adj)
     loss_train = F.nll_loss(output[idx_train], labels[idx_train])
     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
-    optimizer.step()
+    if args.transfer:
+        optimizer2.step()
+    else:
+        optimizer.step()
 
     if not args.fastmode:
         # Evaluate validation set performance separately,
@@ -154,8 +171,8 @@ t_total = time.time()
 temp = args.temp
 for epoch in range(args.pre_epochs):
     pretrain(epoch, temp)
-    if epoch%100 == 0 and args.anneal:
-        temp = args.temp*np.exp(-0.0003*epoch)
+    if epoch%1000 == 0 and args.anneal:
+        temp = max(args.min_temp, args.temp*np.exp(-0.0003*epoch))
 
 for epoch in range(args.epochs):
     train(epoch)
