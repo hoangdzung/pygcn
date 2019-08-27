@@ -15,7 +15,7 @@ class GCN(nn.Module):
         x = self.gc1(x, adj)
         self.params = x 
         embedding_assign = gumbel_softmax(x, temp, hard, beta)
-        x = F.relu(x)
-        x = F.dropout(x, self.dropout, training=self.training)
-        x = self.gc2(x, adj)
-        return embedding_assign, F.log_softmax(x, dim=1)
+        x1 = F.relu(x)
+        x2 = F.dropout(x1, self.dropout, training=self.training)
+        x3 = self.gc2(x2, adj)
+        return embedding_assign, F.log_softmax(x3, dim=1)

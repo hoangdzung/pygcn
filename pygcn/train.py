@@ -78,7 +78,7 @@ def pretrain(epoch, temp):
     model.train()
     optimizer.zero_grad()
     assign_tensor, output = model(features, adj, temp, args.hard, args.beta)
-    loss_train = nmin_cut(assign_tensor, adj_ds)
+    loss_train = nmin_cut(assign_tensor, adj_ds) 
     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
@@ -90,16 +90,16 @@ def pretrain(epoch, temp):
         _, output = model(features, adj)
 
     # # loss_val = F.nll_loss(output[idx_val], labels[idx_val])
-    # acc_val = accuracy(output[idx_val], labels[idx_val])
-    # print('Epoch: {:04d}'.format(epoch+1),
-    #       'loss_train: {:.4f}'.format(loss_train.item()),
-    #       'acc_train: {:.4f}'.format(acc_train.item()),
+    acc_val = accuracy(output[idx_val], labels[idx_val])
+    #print('Epoch: {:04d}'.format(epoch+1),
+    #      'loss_train: {:.4f}'.format(loss_train.item()),
+    #      'acc_train: {:.4f}'.format(acc_train.item()),
     #     #   'loss_val: {:.4f}'.format(loss_val.item()),
-    #       'acc_val: {:.4f}'.format(acc_val.item()),
-    #       'time: {:.4f}s'.format(time.time() - t))
-    if epoch % 100 = 0:
+    #      'acc_val: {:.4f}'.format(acc_val.item()),
+    #      'time: {:.4f}s'.format(time.time() - t))
+    if epoch % 100 == 0:
         accs = classify(model.params.detach().cpu().numpy(),labels.detach().cpu().numpy(), 0.5)
-        print(accs)
+        print(loss_train.item(), accs)
 
 def train(epoch):
     t = time.time()
@@ -142,6 +142,7 @@ t_total = time.time()
 temp = args.temp
 for epoch in range(args.pre_epochs):
     pretrain(epoch, temp)
+#import pdb;pdb.set_trace()
 for epoch in range(args.epochs):
     train(epoch)
 print("Optimization Finished!")
