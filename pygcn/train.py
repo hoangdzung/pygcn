@@ -62,6 +62,9 @@ model = GCN(nfeat=features.shape[1],
 optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
 
+best_val_acc = 0
+best_output = None 
+
 if args.cuda:
     model.cuda()
     features = features.cuda()
@@ -79,7 +82,7 @@ def pretrain(epoch, temp):
     optimizer.zero_grad()
     assign_tensor, output = model(features, adj, temp, args.hard, args.beta)
     loss_train = nmin_cut(assign_tensor, adj_ds) 
-    acc_train = accuracy(output[idx_train], labels[idx_train])
+#     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()
 
@@ -87,21 +90,23 @@ def pretrain(epoch, temp):
         # Evaluate validation set performance separately,
         # deactivates dropout during validation run.
         model.eval()
-        _, output = model(features, adj)
+        _,_ = model(features, adj)
 
-    # # loss_val = F.nll_loss(output[idx_val], labels[idx_val])
-    acc_val = accuracy(output[idx_val], labels[idx_val])
-    #print('Epoch: {:04d}'.format(epoch+1),
-    #      'loss_train: {:.4f}'.format(loss_train.item()),
-    #      'acc_train: {:.4f}'.format(acc_train.item()),
-    #     #   'loss_val: {:.4f}'.format(loss_val.item()),
-    #      'acc_val: {:.4f}'.format(acc_val.item()),
-    #      'time: {:.4f}s'.format(time.time() - t))
+#     loss_val = F.nll_loss(output[idx_val], labels[idx_val])
+#     acc_val = accuracy(output[idx_val], labels[idx_val])
+#     print('Epoch: {:04d}'.format(epoch+1),
+#          'loss_train: {:.4f}'.format(loss_train.item()),
+#          'acc_train: {:.4f}'.format(acc_train.item()),
+#           'loss_val: {:.4f}'.format(loss_val.item()),
+#          'acc_val: {:.4f}'.format(acc_val.item()),
+#          'time: {:.4f}s'.format(time.time() - t))
     if epoch % 100 == 0:
         accs = classify(model.params.detach().cpu().numpy(),labels.detach().cpu().numpy(), 0.5)
         print(loss_train.item(), accs)
 
 def train(epoch):
+    global best_val_acc, best_output
+
     t = time.time()
     model.train()
     optimizer.zero_grad()
@@ -119,6 +124,10 @@ def train(epoch):
 
     loss_val = F.nll_loss(output[idx_val], labels[idx_val])
     acc_val = accuracy(output[idx_val], labels[idx_val])
+    if acc_val > best_val_acc:
+        best_val_acc = acc_val
+        best_output = output
+
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(loss_train.item()),
           'acc_train: {:.4f}'.format(acc_train.item()),
@@ -127,9 +136,8 @@ def train(epoch):
           'time: {:.4f}s'.format(time.time() - t))
 
 
-def test():
+def test(output):
     model.eval()
-    _, output = model(features, adj)
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
     print("Test set results:",
@@ -142,11 +150,11 @@ t_total = time.time()
 temp = args.temp
 for epoch in range(args.pre_epochs):
     pretrain(epoch, temp)
-#import pdb;pdb.set_trace()
+
 for epoch in range(args.epochs):
     train(epoch)
 print("Optimization Finished!")
 print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 
 # Testing
-test()
+test(best_output)
