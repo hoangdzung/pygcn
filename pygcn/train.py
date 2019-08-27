@@ -34,14 +34,16 @@ parser.add_argument('--hidden', type=int, default=16,
 parser.add_argument('--dropout', type=float, default=0.5,
                     help='Dropout rate (1 - keep probability).')
 
+parser.add_argument('--anneal', action='store_true', default=False,
+                    help='Disables CUDA training.')
 parser.add_argument('--min-temp', dest='min_temp', type=float, default=0.1,
-        help='Minimum value of temperature when using temp annealing, default=0.1')
+                    help='Minimum value of temperature when using temp annealing, default=0.1')
 parser.add_argument('--temp', dest='temp', type=float, default=1,
-        help='Temperature for gumbel sinkhorn, default=1')
+                    help='Temperature for gumbel sinkhorn, default=1')
 parser.add_argument('--hard',action="store_true",
-        help='Hard assignment of gumbel softmax') 
+                    help='Hard assignment of gumbel softmax') 
 parser.add_argument('--beta', type=float, default=0,
-        help='Beta param of gumbel softmax, default=0')
+                    help='Beta param of gumbel softmax, default=0')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -152,6 +154,8 @@ t_total = time.time()
 temp = args.temp
 for epoch in range(args.pre_epochs):
     pretrain(epoch, temp)
+    if epoch%100 == 0 and args.anneal:
+        temp = args.temp*np.exp(-0.0003*epoch)
 
 for epoch in range(args.epochs):
     train(epoch)
