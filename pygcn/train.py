@@ -67,8 +67,8 @@ optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
 optimizer2 = optim.Adam(
     [
-        {"params": model.encoder.parameters(), "lr": args.lr/10},
-        {"params": model.classifier.parameters(), "lr": args.lr}
+        {"params": model.gc1.parameters(), "lr": args.lr/10},
+        {"params": model.gc2.parameters(), "lr": args.lr}
     ], 
     lr=args.lr, 
     weight_decay=args.weight_decay
@@ -182,3 +182,4 @@ print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
 # Testing
 print("Best model at ", best_at)
 test(best_output)
+print(temp)
