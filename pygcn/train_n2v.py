@@ -42,18 +42,8 @@ parser.add_argument('--neg_sample_size',  type=int, default=20,
 parser.add_argument('--neg_sample_weight',  type=int, default=20,
                     help='Negative sample size')
 
-parser.add_argument('--anneal', action='store_true', default=False,
-                    help='Disables CUDA training.')
 parser.add_argument('--transfer', action='store_true', default=False,
                     help='Transfer learning - using smaller learning rate when transfering')
-parser.add_argument('--min-temp', dest='min_temp', type=float, default=0.1,
-                    help='Minimum value of temperature when using temp annealing, default=0.1')
-parser.add_argument('--temp', dest='temp', type=float, default=1,
-                    help='Temperature for gumbel sinkhorn, default=1')
-parser.add_argument('--hard',action="store_true",
-                    help='Hard assignment of gumbel softmax') 
-parser.add_argument('--beta', type=float, default=0,
-                    help='Beta param of gumbel softmax, default=0')
 
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
@@ -75,8 +65,8 @@ optimizer = optim.Adam(model.parameters(),
                        lr=args.lr, weight_decay=args.weight_decay)
 optimizer2 = optim.Adam(
     [
-        {"params": model.encoder.parameters(), "lr": args.lr/10},
-        {"params": model.classifier.parameters(), "lr": args.lr}
+        {"params": model.gc1.parameters(), "lr": args.lr/10},
+        {"params": model.gc2.parameters(), "lr": args.lr}
     ], 
     lr=args.lr, 
     weight_decay=args.weight_decay
