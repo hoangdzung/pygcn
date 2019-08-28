@@ -2,6 +2,11 @@ import numpy as np
 import scipy.sparse as sp
 import torch
 
+def fixed_unigram_candidate_sampler(num_sampled, unique, range_max, distortion, unigrams):
+    weights = unigrams**distortion
+    prob = weights/weights.sum()
+    sampled = np.random.choice(range_max, num_sampled, p=prob, replace=~unique)
+    return sampled
 
 def encode_onehot(labels):
     classes = set(labels)
@@ -34,7 +39,7 @@ def load_data(path="../data/cora/", dataset="cora"):
 
     # build symmetric adjacency matrix
     adj = adj + adj.T.multiply(adj.T > adj) - adj.multiply(adj.T > adj)
-
+    deg = adj.sum(0)
     features = normalize(features)
     adj = normalize(adj + sp.eye(adj.shape[0]))
 
@@ -51,7 +56,7 @@ def load_data(path="../data/cora/", dataset="cora"):
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
-    return adj_sp, adj_ds, features, labels, idx_train, idx_val, idx_test
+    return adj_sp, adj_ds, edges, deg, features, labels, idx_train, idx_val, idx_test
 
 
 def normalize(mx):
