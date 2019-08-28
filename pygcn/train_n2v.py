@@ -87,11 +87,11 @@ if args.cuda:
     idx_test = idx_test.cuda()
 
 
-def pretrain(epoch, temp):
+def pretrain(epoch):
     t = time.time()
     model.train()
     optimizer.zero_grad()
-    _, _ = model(features, adj, temp, args.hard, args.beta)
+    _, _ = model(features, adj)
     neg_nodes = fixed_unigram_candidate_sampler(
         num_sampled=args.neg_sample_size,
         unique=False,
@@ -181,11 +181,8 @@ def test(output):
 
 # Train model
 t_total = time.time()
-temp = args.temp
 for epoch in range(args.pre_epochs):
-    pretrain(epoch, temp)
-    if epoch%1000 == 0 and args.anneal:
-        temp = max(args.min_temp, args.temp*np.exp(-0.0003*epoch))
+    pretrain(epoch)
 
 for epoch in range(args.epochs):
     train(epoch)
