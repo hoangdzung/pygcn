@@ -1,6 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
 import torch
+import random 
 
 def fixed_unigram_candidate_sampler(num_sampled, unique, range_max, distortion, unigrams):
     weights = unigrams**distortion
@@ -8,6 +9,9 @@ def fixed_unigram_candidate_sampler(num_sampled, unique, range_max, distortion, 
     sampled = np.random.choice(range_max, num_sampled, p=prob, replace=~unique)
     return sampled
 
+def sample_negative(anchors, neg_adj_list):
+    return [random.choice(neg_adj_list[anchor]) for anchor in anchors]
+        
 def encode_onehot(labels):
     classes = set(labels)
     classes_dict = {c: np.identity(len(classes))[i, :] for i, c in
@@ -56,7 +60,9 @@ def load_data(path="../data/cora/", dataset="cora"):
     idx_val = torch.LongTensor(idx_val)
     idx_test = torch.LongTensor(idx_test)
 
-    return adj_sp, adj_ds, edges, deg, features, labels, idx_train, idx_val, idx_test
+    neg_adj_list = [list( np.where(adj_ds[i] ==0)[0] ) for i in range(adj_ds.shape[0])]
+
+    return adj_sp, adj_ds, neg_adj_list, edges, np.squeeze(np.array(deg)), features, labels, idx_train, idx_val, idx_test
 
 
 def normalize(mx):
