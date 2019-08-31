@@ -84,6 +84,10 @@ best_val_acc = 0
 best_output = None 
 best_at = 0
 
+best_loss = 1e20 
+best_accs = None 
+best_at = 0
+
 if args.cuda:
     model.cuda()
     features = features.cuda()
@@ -96,6 +100,7 @@ if args.cuda:
 
 
 def pretrain(epoch, temp):
+    global best_accs, best_loss, best_at
     t = time.time()
     model.train()
     optimizer.zero_grad()
@@ -122,6 +127,10 @@ def pretrain(epoch, temp):
     if epoch % 100 == 0:
         accs = classify(model.params.detach().cpu().numpy(),labels.detach().cpu().numpy(), 0.5)
         print(loss_train.item(), accs)
+        if loss_train.item() <= best_loss:
+            best_loss = loss_train.item()
+            best_accs = accs 
+            best_at = epoch
 
 def train(epoch):
     global best_val_acc, best_output, best_at
@@ -180,6 +189,7 @@ for epoch in range(args.pre_epochs):
     if epoch%1000 == 0 and args.anneal:
         temp = max(args.min_temp, args.temp*np.exp(-0.0003*epoch))
 
+print(best_accs)
 for epoch in range(args.epochs):
     train(epoch)
 print("Optimization Finished!")
