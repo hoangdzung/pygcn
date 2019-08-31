@@ -11,7 +11,7 @@ import torch.optim as optim
 
 from pygcn.utils import load_data, accuracy, fixed_unigram_candidate_sampler, sample_negative
 from pygcn.models import GCN
-from pygcn.loss import nmin_cut, node2vec
+from pygcn.loss import nmin_cut, node2vec, full_node2vec
 from pygcn.classify import classify
 
 # Training settings
@@ -109,16 +109,17 @@ def pretrain(epoch):
     #     distortion=0.75,
     #     unigrams=degrees
     # )   
-    np.random.shuffle(train_edges)
-    batch_edges = train_edges[:args.batch_size]
-    nodes1, nodes2 = batch_edges[:,0], batch_edges[:,1]
-    neg_nodes = sample_negative(nodes1, neg_adj_list)
+    # np.random.shuffle(train_edges)
+    # batch_edges = train_edges[:args.batch_size]
+    # nodes1, nodes2 = batch_edges[:,0], batch_edges[:,1]
+    # neg_nodes = sample_negative(nodes1, neg_adj_list)
     
-    outputs1 = F.normalize(model.params[nodes1], dim=1)
-    outputs2 = F.normalize(model.params[nodes2], dim=1)
-    neg_outputs = F.normalize(model.params[neg_nodes], dim=1)
+    # outputs1 = model.params[nodes1]
+    # outputs2 = model.params[nodes2]
+    # neg_outputs = model.params[neg_nodes]
 
-    loss_train = node2vec(outputs1, outputs2, neg_outputs, args.neg_sample_weight)
+    # loss_train = node2vec(outputs1, outputs2, neg_outputs, args.neg_sample_weight)
+    loss_train = full_node2vec(model.params, adj_ds)
 #     acc_train = accuracy(output[idx_train], labels[idx_train])
     loss_train.backward()
     optimizer.step()

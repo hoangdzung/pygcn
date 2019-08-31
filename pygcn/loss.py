@@ -14,6 +14,14 @@ def sigmoid_cross_entropy_with_logits(labels, logits):
     loss = labels * -torch.log(sig_aff+1e-10) + (1 - labels) * -torch.log(1 - sig_aff+1e-10)
     return loss
 
+def full_node2vec(params, adj):
+    params = F.normalize(params, dim=1)
+
+    aff = params.mm(params.t())    
+    if torch.cuda.is_available():
+        true_labels = true_labels.cuda()
+    xent = sigmoid_cross_entropy_with_logits(labels=adj, logits=aff)
+    return xent.sum()
 
 def node2vec(outputs1, outputs2, neg_outputs, neg_sample_weights=1.0):
     outputs1 = F.normalize(outputs1, dim=1)
@@ -25,7 +33,7 @@ def node2vec(outputs1, outputs2, neg_outputs, neg_sample_weights=1.0):
     true_labels = torch.ones(true_aff.shape)
     if torch.cuda.is_available():
         true_labels = true_labels.cuda()
-        true_xent = sigmoid_cross_entropy_with_logits(labels=true_labels, logits=true_aff)
+    true_xent = sigmoid_cross_entropy_with_logits(labels=true_labels, logits=true_aff)
     neg_labels = torch.zeros(neg_aff.shape)
     if torch.cuda.is_available():
         neg_labels = neg_labels.cuda()
